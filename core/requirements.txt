@@ -1,5 +1,0 @@
-pydantic-ai
-langchain-openai
-python-dotenv
-unstructured
-pdf2image
