@@ -5,7 +5,6 @@ from typing import List
 from .security import MarcelShield
 
 # --- DATA MODELS ---
-# These define exactly what the AI is looking for
 class ContractRule(BaseModel):
     rule_id: str
     description: str
@@ -17,10 +16,11 @@ class AuditResult(BaseModel):
     rules: List[ContractRule]
 
 # --- THE AUDITOR AGENT ---
-# This is the "Brain" of the operation
+# FIX: We define the result_type here once. 
+# This tells the Agent exactly how to format its brain.
 auditor_agent = Agent(
     'openai:gpt-4o', 
-    result_type=AuditResult, # We define the output type here once
+    result_type=AuditResult, 
     system_prompt=(
         "You are the MARCEL ARCH Autonomous Auditor. "
         "Extract rigid financial rules from contracts. Ignore fluff. "
@@ -37,17 +37,16 @@ class MarcelArchEngine:
     async def audit_document(self, raw_text: str) -> AuditResult:
         """Processes raw contract text into actionable Roman Guardrails."""
         
-        # 1. Security Masking (Keeping the data safe)
+        # 1. Security Masking
         secure_text = self.shield.mask_pii(raw_text)
         
         print(f"🏛️ MARCEL ARCH [v{self.version}]: Extracting guardrails...")
         
-        # 2. Agentic Reasoning (Calling the Brain)
-        # We use simple .run() because result_type is already set in the Agent above
+        # 2. Agentic Reasoning
+        # FIX: We use a simple .run() here because the type is already set above.
         result = await auditor_agent.run(secure_text)
         
         # 3. Security Circuit Breaker
-        # Make sure the AI didn't leak anything before we return the data
         if self.shield.circuit_breaker(str(result.data)):
             return result.data
         else:
