@@ -1,42 +1,56 @@
 import asyncio
+import os
 from core.engine import MarcelArchEngine
 from core.auditor import MarcelAuditor
+from dotenv import load_dotenv
+
+# Load security credentials
+load_dotenv()
 
 async def run_marcel_arch_demo():
-    print("🏛️ INITIALIZING MARCEL ARCH SYSTEM...")
+    print("🏛️  MARCEL ARCH SYSTEM ONLINE")
+    print("-" * 40)
     
     engine = MarcelArchEngine()
     auditor = MarcelAuditor()
 
-    # 1. The Raw Contract (Unstructured Data)
+    # 1. THE CONTRACT (The Law)
     raw_contract = """
-    Official Agreement: Global Logistics charges a flat rate of $10,000 for shipping. 
-    If monthly volume exceeds 500 units, a 15% discount is applied to the total bill.
+    Service Agreement: Global Logistics Inc. 
+    Standard monthly flat fee: $10,000. 
+    Clause 4.2: If shipping volume exceeds 500 units in a calendar month, 
+    a 15% discount shall be applied to the total monthly invoice.
     """
 
-    # 2. Extract the "Roman Rules"
+    # 2. THE BRAIN: Extracting Rules
     rules_data = await engine.audit_document(raw_contract)
-    print(f"✅ Guardrails Extracted for: {rules_data.vendor_name}")
+    print(f"✅ Rules Extracted for Vendor: {rules_data.vendor_name}")
 
-    # 3. The Live Invoice (The 'Suspect' Data)
-    # Scenario: They shipped 600 units but still charged $10,000
+    # 3. THE INVOICE (The Evidence)
+    # Scenario: The vendor shipped 620 units (over the 500 limit) but still billed $10,000
     mock_invoice = {
-        "invoice_id": "INV-2026-001",
-        "vendor_name": "Global Logistics",
-        "units_purchased": 600,
+        "invoice_id": "INV-2026-04-03",
+        "vendor_name": "Global Logistics Inc",
+        "units_purchased": 620,
         "total_amount": 10000.00
     }
 
-    # 4. Run the Audit
-    print("🔍 AUDITING LIVE INVOICE...")
+    # 4. THE EXECUTIONER: Audit for Leakage
+    print("🔍 Auditing Invoice for Leakage...")
     report = auditor.calculate_leakage(mock_invoice, rules_data.rules)
 
-    # 5. The Result
+    # 5. THE VERDICT
+    print("-" * 40)
     if report.leakage_amount > 0:
         print(f"🚨 LEAKAGE DETECTED: ${report.leakage_amount:,.2f}")
-        print(f"📝 DETAILS: {report.violation_details}")
+        print(f"📝 REASON: {report.violation_details}")
+        print(f"💰 ACTION: Drafted recovery notice for {report.vendor_name}.")
     else:
-        print("🟢 INVOICE COMPLIANT: No leakage found.")
+        print("🟢 AUDIT PASSED: No financial leakage identified.")
+    print("-" * 40)
 
 if __name__ == "__main__":
-    asyncio.run(run_marcel_arch_demo())
+    if not os.getenv("OPENAI_API_KEY"):
+        print("❌ ERROR: Please set your OPENAI_API_KEY in the .env file.")
+    else:
+        asyncio.run(run_marcel_arch_demo())
