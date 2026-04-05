@@ -16,7 +16,7 @@ class AuditResult(BaseModel):
     rules: List[ContractRule]
 
 # --- THE AUDITOR AGENT ---
-# We move result_type HERE to satisfy the new version of the library
+# FIX: In your version, 'result_type' MUST be here, at the start.
 auditor_agent = Agent(
     'openai:gpt-4o', 
     result_type=AuditResult, 
@@ -38,7 +38,8 @@ class MarcelArchEngine:
         secure_text = self.shield.mask_pii(raw_text)
         print(f"🏛️ MARCEL ARCH [v{self.version}]: Extracting guardrails...")
         
-        # We removed the result_type from here because it's now in the Agent above
+        # FIX: In your version, the .run() command must be empty of arguments 
+        # except for the text itself.
         result = await auditor_agent.run(secure_text)
         
         return result.data
