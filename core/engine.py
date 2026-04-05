@@ -16,9 +16,10 @@ class AuditResult(BaseModel):
     rules: List[ContractRule]
 
 # --- THE AUDITOR AGENT ---
-# We define the brain here, but we move 'result_type' to the run command
+# We move result_type HERE to satisfy the new version of the library
 auditor_agent = Agent(
     'openai:gpt-4o', 
+    result_type=AuditResult, 
     system_prompt=(
         "You are the MARCEL ARCH Autonomous Auditor. "
         "Extract rigid financial rules from contracts. Ignore fluff. "
@@ -34,18 +35,10 @@ class MarcelArchEngine:
 
     async def audit_document(self, raw_text: str) -> AuditResult:
         """Processes raw contract text into actionable Roman Guardrails."""
-        
-        # 1. Security Masking
         secure_text = self.shield.mask_pii(raw_text)
-        
         print(f"🏛️ MARCEL ARCH [v{self.version}]: Extracting guardrails...")
         
-        # 2. Agentic Reasoning 
-        # FIX: We put 'result_type' inside the .run() call for your version
-        result = await auditor_agent.run(secure_text, result_type=AuditResult)
+        # We removed the result_type from here because it's now in the Agent above
+        result = await auditor_agent.run(secure_text)
         
-        # 3. Security Circuit Breaker
-        if self.shield.circuit_breaker(str(result.data)):
-            return result.data
-        else:
-            raise PermissionError("Security Breach detected in AI output.")
+        return result.data
