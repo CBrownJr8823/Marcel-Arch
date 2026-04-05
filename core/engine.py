@@ -16,11 +16,9 @@ class AuditResult(BaseModel):
     rules: List[ContractRule]
 
 # --- THE AUDITOR AGENT ---
-# FIX: We define the result_type here once. 
-# This tells the Agent exactly how to format its brain.
+# We define the brain here, but we move 'result_type' to the run command
 auditor_agent = Agent(
     'openai:gpt-4o', 
-    result_type=AuditResult, 
     system_prompt=(
         "You are the MARCEL ARCH Autonomous Auditor. "
         "Extract rigid financial rules from contracts. Ignore fluff. "
@@ -42,9 +40,9 @@ class MarcelArchEngine:
         
         print(f"🏛️ MARCEL ARCH [v{self.version}]: Extracting guardrails...")
         
-        # 2. Agentic Reasoning
-        # FIX: We use a simple .run() here because the type is already set above.
-        result = await auditor_agent.run(secure_text)
+        # 2. Agentic Reasoning 
+        # FIX: We put 'result_type' inside the .run() call for your version
+        result = await auditor_agent.run(secure_text, result_type=AuditResult)
         
         # 3. Security Circuit Breaker
         if self.shield.circuit_breaker(str(result.data)):
