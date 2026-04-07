@@ -1,4 +1,3 @@
-# core/engine.py
 from decimal import Decimal
 from typing import List
 
@@ -9,25 +8,30 @@ from .security import MarcelShield
 
 
 class ContractRule(BaseModel):
+    """A single financial rule extracted from a contract."""
     rule_id: str
     description: str
     value_threshold: Decimal | int | None = None
     discount_percent: Decimal | None = None
     logic: str = Field(
         ...,
-        description="Plain-English description of how to apply this rule "
-                    "(e.g. 'if units > 500 then apply 15% discount').",
+        description=(
+            "Plain-English description of how to apply this rule "
+            "(e.g. 'if units > 500 then apply 15% discount')."
+        ),
     )
 
 
 class AuditResult(BaseModel):
+    """Structured representation of a contract: vendor + rules."""
     vendor_name: str = Field(..., min_length=1)
     rules: List[ContractRule]
 
 
+# Pydantic‑AI agent that returns structured AuditResult
 auditor_agent = Agent(
     "openai:gpt-4o",
-    output_type=AuditResult,  # structured output
+    output_type=AuditResult,
     system_prompt=(
         "You are the MARCEL ARCH Autonomous Auditor.\n"
         "Task: Extract only explicit financial rules from contracts.\n"
@@ -43,12 +47,17 @@ auditor_agent = Agent(
 
 
 class MarcelArchEngine:
+    """Engine that turns raw contract text into executable guardrails."""
+
     def __init__(self) -> None:
         self.version = "1.0-Roman"
         self.shield = MarcelShield()
 
     async def audit_document(self, raw_text: str) -> AuditResult:
-        """Turn a raw contract into a structured set of guardrail rules."""
+        """
+        Ingest a raw contract string and return an AuditResult
+        with vendor_name and extracted ContractRule items.
+        """
         secure_text = self.shield.mask_pii(raw_text)
         print(f"🏛️ MARCEL ARCH [v{self.version}]: Extracting guardrails...")
 
