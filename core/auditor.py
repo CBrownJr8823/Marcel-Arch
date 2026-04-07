@@ -4,18 +4,19 @@ from typing import List
 from pydantic import BaseModel, Field
 
 from .engine import ContractRule
+from .invoice import Invoice
 
 
 TWOPLACES = Decimal("0.01")
 
 
 def to_money(value) -> Decimal:
-    """Convert numeric/str into a Decimal with 2 decimal places."""
+    """Convert a number or string into a Decimal with 2 decimal places."""
     return Decimal(str(value)).quantize(TWOPLACES, rounding=ROUND_HALF_UP)
 
 
 class LeakageReport(BaseModel):
-    """The high-stakes report for the CFO."""
+    """Structured audit result for one invoice."""
     invoice_id: str
     vendor_name: str
     expected_amount: Decimal
@@ -25,25 +26,22 @@ class LeakageReport(BaseModel):
 
 
 class MarcelAuditor:
-    """Executes contract rules against real invoices."""
+    """Executes contract rules against validated invoices."""
 
     def calculate_leakage(
         self,
-        invoice_ dict,
+        invoice: Invoice,
         contract_rules: List[ContractRule],
     ) -> LeakageReport:
         """
-        Compare invoice vs rules and compute financial leakage.
-        Currently supports volume-based discounts as a demo.
+        Compare one invoice against extracted contract rules and compute leakage.
+        Current v1 focus: volume-based discount detection.
         """
-        invoice_id = invoice_data.get("invoice_id", "UNKNOWN")
-        vendor_name = invoice_data.get("vendor_name", "UNKNOWN")
+        invoice_id = invoice.invoice_id
+        vendor_name = invoice.vendor_name
 
-        if "total_amount" not in invoice_
-            raise ValueError("Invoice is missing total_amount")
-
-        actual_billed = to_money(invoice_data["total_amount"])
-        units = int(invoice_data.get("units_purchased", 0))
+        actual_billed = to_money(invoice.total_amount)
+        units = int(invoice.units_purchased or 0)
 
         expected_amount = actual_billed
         details = "No violations detected."
@@ -56,16 +54,18 @@ class MarcelAuditor:
             if threshold is None:
                 continue
 
-            # Simple demo: volume-based discount rule
+            # v1 rule type: volume discount
             if "unit" in logic and "discount" in logic and units > threshold:
                 rate = (
                     discount_percent / Decimal("100")
                     if discount_percent is not None
-                    else Decimal("0.15")  # fallback to 15% if missing
+                    else Decimal("0.15")
                 )
+
                 expected_amount = (
                     actual_billed * (Decimal("1.00") - rate)
                 ).quantize(TWOPLACES, rounding=ROUND_HALF_UP)
+
                 details = (
                     f"Violation: Missed {int(rate * 100)}% volume discount "
                     f"for exceeding {threshold} units."
@@ -86,7 +86,7 @@ class MarcelAuditor:
         )
 
     def generate_recovery_notice(self, report: LeakageReport) -> str:
-        """Draft a simple, professional recovery letter."""
+        """Generate a professional recovery notice for AP/AR follow-up."""
         if report.leakage_amount <= 0:
             return "No recovery action required."
 
