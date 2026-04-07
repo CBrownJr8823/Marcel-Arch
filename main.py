@@ -1,13 +1,16 @@
 import asyncio
+import json
 import os
+from pathlib import Path
 
 from dotenv import load_dotenv
 
 from core.engine import MarcelArchEngine
 from core.auditor import MarcelAuditor
+from core.invoice import Invoice
 
 
-# Load environment variables from .env (OPENAI_API_KEY, etc.)
+# Load environment variables from local .env
 load_dotenv()
 
 
@@ -23,48 +26,76 @@ async def run_marcel_arch_demo():
     engine = MarcelArchEngine()
     auditor = MarcelAuditor()
 
-    # 1. THE CONTRACT (The Law)
-    raw_contract = """
-    Service Agreement: Global Logistics Inc.
-    Standard monthly flat fee: $10,000.
-    Clause 4.2: If shipping volume exceeds 500 units in a calendar month,
-    a 15% discount shall be applied to the total monthly invoice.
-    """
+    # 1. Load contract from file
+    contract_path = Path("contracts/demo_contract.txt")
+    if not contract_path.exists():
+        print("❌ Contract file not found: contracts/demo_contract.txt")
+        return
 
-    # 2. Extract rules from the contract
+    raw_contract = contract_path.read_text(encoding="utf-8")
+
+    # 2. Extract rules from contract
     rules_data = await engine.audit_document(raw_contract)
     print(f"✅ Rules Extracted for Vendor: {rules_data.vendor_name}")
 
-    # 3. THE INVOICE (The Suspect)
-    mock_invoice = {
-        "invoice_id": "INV-2026-04-05",
-        "vendor_name": "Global Logistics Inc",
-        "units_purchased": 620,
-        "total_amount": 10000.00,
-    }
+    # 3. Load invoice files from data/
+    data_dir = Path("data")
+    if not data_dir.exists():
+        print("❌ Data folder not found: data/")
+        return
 
-    # 4. Vendor sanity check
-    if normalize_vendor_name(rules_data.vendor_name) != normalize_vendor_name(
-        mock_invoice["vendor_name"]
-    ):
-        print("⚠️ Vendor name mismatch between contract and invoice.")
-        print(f"   Contract: {rules_data.vendor_name}")
-        print(f"   Invoice:  {mock_invoice['vendor_name']}")
+    invoice_files = sorted(data_dir.glob("invoice_*.json"))
+    if not invoice_files:
+        print("❌ No invoice_*.json files found in data/")
+        return
 
-    # 5. THE EXECUTIONER: Audit for Leakage
-    print("🔍 Auditing Invoice for Leakage...")
-    report = auditor.calculate_leakage(mock_invoice, rules_data.rules)
+    audits_dir = Path("audits")
+    audits_dir.mkdir(exist_ok=True)
 
-    # 6. THE VERDICT & RECOVERY
-    print("-" * 40)
-    if report.leakage_amount > 0:
-        print(f"🚨 LEAKAGE DETECTED: ${report.leakage_amount:,.2f}")
-        print("\n📝 GENERATING RECOVERY NOTICE:\n")
-        recovery_letter = auditor.generate_recovery_notice(report)
-        print(recovery_letter)
-    else:
-        print("🟢 AUDIT PASSED: No financial leakage identified.")
-    print("-" * 40)
+    # 4. Process each invoice
+    for invoice_file in invoice_files:
+        print(f"\n📄 Processing invoice file: {invoice_file.name}")
+
+        try:
+            invoice_data = json.loads(invoice_file.read_text(encoding="utf-8"))
+            invoice = Invoice.model_validate(invoice_data)
+        except Exception as e:
+            print(f"❌ Failed to load/validate {invoice_file.name}: {e}")
+            continue
+
+        # Vendor sanity check
+        if normalize_vendor_name(rules_data.vendor_name) != normalize_vendor_name(
+            invoice.vendor_name
+        ):
+            print("⚠️ Vendor name mismatch between contract and invoice.")
+            print(f"   Contract: {rules_data.vendor_name}")
+            print(f"   Invoice:  {invoice.vendor_name}")
+
+        # Audit invoice
+        print("🔍 Auditing Invoice for Leakage...")
+        try:
+            report = auditor.calculate_leakage(invoice, rules_data.rules)
+        except Exception as e:
+            print(f"❌ Audit failed for {invoice.invoice_id}: {e}")
+            continue
+
+        # Persist audit trail
+        audit_path = audits_dir / f"audit_{report.invoice_id}.json"
+        with audit_path.open("w", encoding="utf-8") as f:
+            json.dump(report.model_dump(), f, indent=2, default=str)
+
+        print(f"📁 Audit written to: {audit_path}")
+
+        # Verdict & recovery
+        print("-" * 40)
+        if report.leakage_amount > 0:
+            print(f"🚨 LEAKAGE DETECTED: ${report.leakage_amount:,.2f}")
+            print("\n📝 GENERATING RECOVERY NOTICE:\n")
+            recovery_letter = auditor.generate_recovery_notice(report)
+            print(recovery_letter)
+        else:
+            print("🟢 AUDIT PASSED: No financial leakage identified.")
+        print("-" * 40)
 
 
 if __name__ == "__main__":
