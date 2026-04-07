@@ -1,24 +1,39 @@
 import re
 
+
 class MarcelShield:
-    """The protective layer for Roman Marcel's legacy."""
-    
-    @staticmethod
-    def mask_pii(text: str) -> str:
-        """Removes sensitive data so the AI never sees it."""
-        # Mask Emails
-        text = re.sub(r'[\w\.-]+@[\w\.-]+\.\w+', "[REDACTED_EMAIL]", text)
-        # Mask Account/ID Numbers (10-12 digits)
-        text = re.sub(r'\b\d{10,12}\b', "[REDACTED_ID]", text)
-        # Mask SSN patterns
-        text = re.sub(r'\d{3}-\d{2}-\d{4}', "[REDACTED_SSN]", text)
+    """Basic prompt-sanitization and output-screening utilities."""
+
+    EMAIL_RE = re.compile(r'\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b')
+    ID_RE = re.compile(r'\b\d{10,12}\b')
+    SSN_RE = re.compile(r'\b\d{3}-\d{2}-\d{4}\b')
+
+    DANGEROUS_PATTERNS = [
+        re.compile(r'\bimport\s+os\b', re.IGNORECASE),
+        re.compile(r'\brm\s+-rf\b', re.IGNORECASE),
+        re.compile(r'\bsubprocess\b', re.IGNORECASE),
+        re.compile(r'\beval\s*\(', re.IGNORECASE),
+        re.compile(r'\bexec\s*\(', re.IGNORECASE),
+    ]
+
+    @classmethod
+    def mask_pii(cls, text: str) -> str:
+        if not isinstance(text, str):
+            raise TypeError("text must be a string")
+
+        text = cls.EMAIL_RE.sub("[REDACTED_EMAIL]", text)
+        text = cls.ID_RE.sub("[REDACTED_ID]", text)
+        text = cls.SSN_RE.sub("[REDACTED_SSN]", text)
         return text
 
-    @staticmethod
-    def circuit_breaker(ai_output: str) -> bool:
-        """Stops the AI if it tries to execute dangerous system code."""
-        dangerous_terms = ["import os", "rm -rf", "subprocess", "eval(", "exec("]
-        if any(term in ai_output.lower() for term in dangerous_terms):
-            print("🛑 SECURITY ALERT: AI attempted unauthorized execution.")
+    @classmethod
+    def circuit_breaker(cls, ai_output: str) -> bool:
+        if not isinstance(ai_output, str):
             return False
+
+        for pattern in cls.DANGEROUS_PATTERNS:
+            if pattern.search(ai_output):
+                print("🛑 SECURITY ALERT: AI attempted unauthorized execution.")
+                return False
+
         return True
