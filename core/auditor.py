@@ -1,4 +1,3 @@
-# core/auditor.py
 from decimal import Decimal, ROUND_HALF_UP
 from typing import List
 
@@ -11,6 +10,7 @@ TWOPLACES = Decimal("0.01")
 
 
 def to_money(value) -> Decimal:
+    """Convert numeric/str into a Decimal with 2 decimal places."""
     return Decimal(str(value)).quantize(TWOPLACES, rounding=ROUND_HALF_UP)
 
 
@@ -25,13 +25,17 @@ class LeakageReport(BaseModel):
 
 
 class MarcelAuditor:
-    """Executes the guardrails against live invoices."""
+    """Executes contract rules against real invoices."""
 
     def calculate_leakage(
         self,
         invoice_ dict,
         contract_rules: List[ContractRule],
     ) -> LeakageReport:
+        """
+        Compare invoice vs rules and compute financial leakage.
+        Currently supports volume-based discounts as a demo.
+        """
         invoice_id = invoice_data.get("invoice_id", "UNKNOWN")
         vendor_name = invoice_data.get("vendor_name", "UNKNOWN")
 
@@ -57,7 +61,7 @@ class MarcelAuditor:
                 rate = (
                     discount_percent / Decimal("100")
                     if discount_percent is not None
-                    else Decimal("0.15")  # fallback if model forgot
+                    else Decimal("0.15")  # fallback to 15% if missing
                 )
                 expected_amount = (
                     actual_billed * (Decimal("1.00") - rate)
