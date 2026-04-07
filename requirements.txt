@@ -1,6 +1,8 @@
+pydantic
 pydantic-ai
+fastapi
+uvicorn
 langchain-openai
 python-dotenv
 unstructured
 pdf2image
-
