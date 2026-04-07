@@ -1,19 +1,22 @@
+# core/security.py
 import re
 
 
 class MarcelShield:
     """Basic prompt-sanitization and output-screening utilities."""
 
-    EMAIL_RE = re.compile(r'\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b')
-    ID_RE = re.compile(r'\b\d{10,12}\b')
-    SSN_RE = re.compile(r'\b\d{3}-\d{2}-\d{4}\b')
+    EMAIL_RE = re.compile(
+        r"\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b"
+    )
+    ID_RE = re.compile(r"\b\d{10,12}\b")
+    SSN_RE = re.compile(r"\b\d{3}-\d{2}-\d{4}\b")
 
     DANGEROUS_PATTERNS = [
-        re.compile(r'\bimport\s+os\b', re.IGNORECASE),
-        re.compile(r'\brm\s+-rf\b', re.IGNORECASE),
-        re.compile(r'\bsubprocess\b', re.IGNORECASE),
-        re.compile(r'\beval\s*\(', re.IGNORECASE),
-        re.compile(r'\bexec\s*\(', re.IGNORECASE),
+        re.compile(r"\bimport\s+os\b", re.IGNORECASE),
+        re.compile(r"\brm\s+-rf\b", re.IGNORECASE),
+        re.compile(r"\bsubprocess\b", re.IGNORECASE),
+        re.compile(r"\beval\s*\(", re.IGNORECASE),
+        re.compile(r"\bexec\s*\(", re.IGNORECASE),
     ]
 
     @classmethod
