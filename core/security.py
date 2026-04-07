@@ -1,10 +1,10 @@
-# core/security.py
 import re
 
 
 class MarcelShield:
     """Basic prompt-sanitization and output-screening utilities."""
 
+    # Precompiled regex patterns
     EMAIL_RE = re.compile(
         r"\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b"
     )
@@ -21,6 +21,7 @@ class MarcelShield:
 
     @classmethod
     def mask_pii(cls, text: str) -> str:
+        """Mask common PII patterns in free text."""
         if not isinstance(text, str):
             raise TypeError("text must be a string")
 
@@ -31,6 +32,10 @@ class MarcelShield:
 
     @classmethod
     def circuit_breaker(cls, ai_output: str) -> bool:
+        """
+        Naive guard: block obviously dangerous generated code.
+        This is a heuristic, not a full security boundary.
+        """
         if not isinstance(ai_output, str):
             return False
 
