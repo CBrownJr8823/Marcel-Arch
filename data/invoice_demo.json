@@ -1,1 +1,17 @@
+{
+  "invoice_id": "INV-2026-04-05",
+  "vendor_name": "Global Logistics Inc",
+  "currency": "USD",
+  "units_purchased": 620,
+  "total_amount": 10000.0,
+  "lines": [
+    {
+      "line_id": "1",
+      "description": "Monthly logistics services",
+      "quantity": 620,
+      "unit_price": 16.13,
+      "total": 10000.0
+    }
+  ]
+}
 
