@@ -5,9 +5,9 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from core.engine import MarcelArchEngine
+from core.engine import AuditResult
 from core.auditor import MarcelAuditor, LeakageReport
 from core.invoice import Invoice
-from core.engine import AuditResult
 
 
 load_dotenv()
@@ -32,7 +32,10 @@ class AuditResponse(BaseModel):
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "service": "marcel-arch"}
+    return {
+        "status": "ok",
+        "service": "marcel-arch"
+    }
 
 
 @app.post("/audit", response_model=AuditResponse)
