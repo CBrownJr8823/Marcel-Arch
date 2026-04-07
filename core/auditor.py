@@ -1,40 +1,69 @@
+from decimal import Decimal, ROUND_HALF_UP
+from typing import List
 from pydantic import BaseModel, Field
-from typing import List, Optional
+
 from .engine import ContractRule
 
+
+TWOPLACES = Decimal("0.01")
+
+
+def to_money(value) -> Decimal:
+    return Decimal(str(value)).quantize(TWOPLACES, rounding=ROUND_HALF_UP)
+
+
 class LeakageReport(BaseModel):
-    """The high-stakes report for the CFO."""
     invoice_id: str
     vendor_name: str
-    expected_amount: float
-    actual_billed: float
-    leakage_amount: float
-    violation_details: str
+    expected_amount: Decimal
+    actual_billed: Decimal
+    leakage_amount: Decimal
+    violation_details: str = Field(..., min_length=1)
+
 
 class MarcelAuditor:
-    def calculate_leakage(self, invoice_data: dict, contract_rules: List[ContractRule]) -> LeakageReport:
-        """Compares live billing against the Roman Guardrails."""
-        actual_billed = invoice_data.get("total_amount", 0.0)
-        units = invoice_data.get("units_purchased", 0)
-        
-        # Default expectation matches bill unless a rule triggers
+    def calculate_leakage(
+        self,
+        invoice_ dict,
+        contract_rules: List[ContractRule]
+    ) -> LeakageReport:
+        invoice_id = invoice_data.get("invoice_id", "UNKNOWN")
+        vendor_name = invoice_data.get("vendor_name", "UNKNOWN")
+
+        if "total_amount" not in invoice_
+            raise ValueError("Invoice is missing total_amount")
+
+        actual_billed = to_money(invoice_data["total_amount"])
+        units = int(invoice_data.get("units_purchased", 0))
+
         expected_amount = actual_billed
         details = "No violations detected."
 
         for rule in contract_rules:
-            # Detect volume-based rules in the extracted logic
-            if "units" in rule.logic.lower() and units > rule.value_threshold:
-                # Apply the 'Roman' 15% discount for the demo
-                discount_rate = 0.15 
-                expected_amount = actual_billed * (1 - discount_rate)
-                details = f"Violation: Missed {int(discount_rate*100)}% volume discount for exceeding {rule.value_threshold} units."
+            logic = getattr(rule, "logic", "") or ""
+            threshold = getattr(rule, "value_threshold", None)
+
+            if threshold is None:
+                continue
+
+            logic_lower = logic.lower()
+
+            if "discount" in logic_lower and "unit" in logic_lower and units > threshold:
+                discount_rate = Decimal("0.15")  # replace with parsed rule value if available
+                expected_amount = (actual_billed * (Decimal("1.00") - discount_rate)).quantize(
+                    TWOPLACES, rounding=ROUND_HALF_UP
+                )
+                details = (
+                    f"Violation: Missed {int(discount_rate * 100)}% volume discount "
+                    f"for exceeding {threshold} units."
+                )
                 break
 
-        leakage = actual_billed - expected_amount
+        leakage = (actual_billed - expected_amount).quantize(TWOPLACES, rounding=ROUND_HALF_UP)
 
         return LeakageReport(
-            invoice_id=invoice_data.get("invoice_id", "UNKNOWN"),
-            vendor_name=invoice_data.get("vendor_name", "UNKNOWN"),
+            invoice_id=invoice_id,
+            vendor_name=vendor_name,
             expected_amount=expected_amount,
             actual_billed=actual_billed,
             leakage_amount=leakage,
