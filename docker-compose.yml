@@ -1,0 +1,50 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      ENVIRONMENT: development
+      DATABASE_URL: postgresql+asyncpg://marcel:marcel@postgres:5432/marcel_arch
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET: change-this-to-a-minimum-32-character-development-secret
+      AUDIT_HMAC_KEY: change-this-to-a-different-minimum-32-character-audit-key
+      CORS_ORIGINS: '["http://localhost:3000","http://localhost:8000"]'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: marcel_arch
+      POSTGRES_USER: marcel
+      POSTGRES_PASSWORD: marcel
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U marcel -d marcel_arch"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - redis_data:/data
+
+volumes:
+  postgres_data:
+  redis_data:
